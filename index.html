@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#11141e" />
+  <meta name="description" content="Privates 3D-Zeichenstudio – Prototyp einer beweglichen Gliederpuppe im Browser." />
+  <title>Atelier 3D – Charakter & Pose</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">✦</span><span>ATELIER <strong>3D</strong></span><span class="brand-tag">PROTOTYP 01</span></div>
+      <div class="top-actions">
+        <span id="saveStatus" class="save-status">Lokal gespeichert</span>
+        <button id="resetAll" class="btn btn-ghost" type="button">↺ Zurücksetzen</button>
+        <button id="screenshot" class="btn btn-primary" type="button">↓ PNG speichern</button>
+      </div>
+    </header>
+
+    <aside class="left-pane">
+      <div class="section-eyebrow">MEIN CHARAKTER</div>
+      <h1>Gestalte deine Figur<span>.</span></h1>
+      <p class="subtext">Eine einfache, bewegliche 3D-Gliederpuppe – direkt im Browser.</p>
+
+      <div class="tab-bar" role="tablist" aria-label="Einstellungen">
+        <button class="tab is-active" data-tab="body" role="tab" aria-selected="true" type="button">Körper</button>
+        <button class="tab" data-tab="pose" role="tab" aria-selected="false" type="button">Gelenke</button>
+      </div>
+
+      <div id="bodyPanel" class="tab-panel">
+        <div class="control-title">DARSTELLUNG</div>
+        <div class="segmented" role="group" aria-label="Figurenstil">
+          <button type="button" class="style-option is-active" data-style="anime">Anime</button>
+          <button type="button" class="style-option" data-style="natural">Neutral</button>
+        </div>
+        <div class="control-title with-gap">PROPORTIONEN</div>
+        <div id="bodyControls" class="sliders"></div>
+        <div class="info-note"><span>ⓘ</span> Diese erste Figur besteht aus einfachen 3D-Formen. Ein detailliertes Charaktermodell mit Haaren und Gesichtseditor ergänzen wir später.</div>
+      </div>
+      <div id="posePanel" class="tab-panel hidden">
+        <div class="control-title">GELENKE BEWEGEN</div>
+        <div id="poseControls" class="sliders"></div>
+        <p class="helper-text">Bewege die Regler, um Arme, Ellenbogen und Beine zu positionieren. Kameradrehung funktioniert separat im 3D-Fenster.</p>
+      </div>
+    </aside>
+
+    <main class="viewport-pane">
+      <div class="viewport-top">
+        <div class="view-label"><span class="online-dot"></span> LIVE 3D <span class="view-sep">/</span> GLIEDERPUPPE</div>
+        <div class="view-switches"><label class="check-label"><input id="showGrid" type="checkbox" checked /> Bodenraster</label><label class="check-label"><input id="showJoints" type="checkbox" checked /> Gelenke</label></div>
+      </div>
+      <div id="stage" class="stage" aria-label="Interaktive 3D-Ansicht"></div>
+      <div class="stage-bottom">
+        <span>↔ <strong>Ziehen</strong> Drehen</span>
+        <span>⌁ <strong>Mausrad</strong> Zoomen</span>
+        <span>⇧ <strong>Rechtsklick</strong> Verschieben</span>
+      </div>
+    </main>
+
+    <aside class="right-pane">
+      <div class="section-eyebrow">POSENSTUDIO</div>
+      <h2>Deine nächste Pose</h2>
+      <p class="subtext">Starte mit einer Vorlage und passe die Gelenke links weiter an.</p>
+      <div class="pose-presets">
+        <button type="button" class="preset is-active" data-preset="neutral"><span class="preset-icon">│</span><span><strong>Grundpose</strong><small>Entspannt stehen</small></span></button>
+        <button type="button" class="preset" data-preset="tpose"><span class="preset-icon">┼</span><span><strong>T-Pose</strong><small>Arme ausstrecken</small></span></button>
+        <button type="button" class="preset" data-preset="wave"><span class="preset-icon">╱</span><span><strong>Winken</strong><small>Einen Arm anheben</small></span></button>
+        <button type="button" class="preset" data-preset="step"><span class="preset-icon">⌁</span><span><strong>Schritt</strong><small>Beine bewegen</small></span></button>
+      </div>
+      <div class="divider"></div>
+      <div class="control-title">DEINE EINSTELLUNGEN</div>
+      <div class="right-actions">
+        <button type="button" id="saveConfig" class="btn btn-secondary">↓ Einstellungen exportieren</button>
+        <label class="btn btn-secondary file-button" for="loadConfig">↑ Einstellungen importieren</label>
+        <input type="file" id="loadConfig" accept=".json,application/json" hidden />
+        <button type="button" id="cameraReset" class="btn btn-ghost">◎ Kamera zurücksetzen</button>
+      </div>
+      <div class="bottom-help">Alles läuft lokal in deinem Browser. Deine Regler-Einstellungen werden auf diesem Gerät automatisch gespeichert. Für die 3D-Bibliothek ist Internet nötig.</div>
+    </aside>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
