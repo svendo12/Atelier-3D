@@ -1,15 +1,15 @@
 import { BufferGeometry, Float32BufferAttribute, LineBasicMaterial, LineSegments, OrthographicCamera, Scene, Color } from 'three';
 import { createDemoFigure } from './demo-figure.js';
 import { createAssetRetargeter, createRigProjection } from './rig-map.js';
-import { loadCharacterAsset } from './character-asset.js';
+import { loadCharacterAsset } from './character-asset.js?v=2532';
 
 const openBoneURL = 'https://esm.sh/@openbone/three@0.4.13?bundle&external=three';
 const minFrameWidth = 310;
 
 export async function createAnimeViewport({ bones, hips, modelId, model }) {
   const { OpenBoneObject3D, prepareTexture } = await import(openBoneURL);
-  const { asset, order, depth, rig, credits } = model?.manifest
-    ? await loadCharacterAsset(model.manifest, prepareTexture)
+  const { asset, order, depth, rig, credits, hairIds, hairPreviewError } = model?.manifest
+    ? await loadCharacterAsset(model.manifest, prepareTexture, { modelId, hairPreview: model.hairPreview })
     : createDemoFigure(prepareTexture);
   let figure;
   try {
@@ -27,6 +27,8 @@ export async function createAnimeViewport({ bones, hips, modelId, model }) {
   const projection = createRigProjection(bones, hips, model?.articulatedFeet);
   const retarget = rig && createAssetRetargeter(rig, model?.headMinScale);
   const clothingSlots = figure.skeleton.drawOrder.filter(slot => Object.hasOwn(model?.clothing ?? {}, slot.data.id));
+  const hairSlots = figure.skeleton.drawOrder.filter(slot => hairIds?.has(slot.data.id));
+  for (const slot of hairSlots) slot.attachmentName = null;
 
   const guideGeometry = new BufferGeometry();
   // One spine chain and four limb chains.
@@ -60,8 +62,10 @@ export async function createAnimeViewport({ bones, hips, modelId, model }) {
     modelId,
     label: model?.viewportLabel ?? model?.label ?? asset.doc.name,
     credits,
+    hairPreview: hairSlots.length > 0,
+    hairPreviewError,
     resize,
-    update(showRig, clothing) {
+    update(showRig, clothing, showHair = false) {
       const source = projection();
       const { frames, order: dynamic, chains, warning } = retarget ? retarget(source) : source;
       // The source 3D hierarchy has already solved the pose. Supply its projected
@@ -70,6 +74,7 @@ export async function createAnimeViewport({ bones, hips, modelId, model }) {
       for (const slot of clothingSlots) {
         slot.attachmentName = clothing?.[slot.data.id] === false ? null : slot.data.attachment;
       }
+      for (const slot of hairSlots) slot.attachmentName = showHair ? slot.data.attachment : null;
       const rank = id => retarget ? (depth[id] ? dynamic[depth[id]] + order[id] / 10000 : order[id])
         : dynamic[id] ?? order[id];
       figure.skeleton.drawOrder.sort((a, b) => rank(a.data.id) - rank(b.data.id));

@@ -28,3 +28,29 @@ py tools/prepare-atelier-anime-01.py "Pfad zum entpackten Layerpaket" "anime25d/
 2. Beide Arme heben und einen Ellenbogen stark beugen. Achseln, Ellenbogen sowie gebeugte Handgelenke prüfen.
 3. Ein Knie heben und in die Knie gehen. Anschließend den Oberkörper bei sichtbaren oder ausgeblendeten Kleidungs-Layern nach vorne neigen.
 4. Bandeau und Slip einzeln ein- und ausschalten. Figur wechseln, neu laden, JSON exportieren und wieder importieren. Anschließend die Basiskleidung zurücksetzen und ein PNG exportieren.
+
+## Gesicht v0.4 und Haarvorschau v0.5
+
+Wähle **Atelier Anime 01 – Basisfigur** und schalte im Bereich **Figur** die **Haarvorschau v0.5** ein. Die Vorschau ist bei neuen Projekten aus. Die Auswahl wird lokal und in der JSON-Datei gespeichert und ist im PNG sichtbar. Die Haartexturen werden erst beim Laden dieser Figur angefordert. Bei einem fehlenden Haar-Asset zeigt die App die Basisfigur und einen Hinweis.
+
+### Sitz im OpenBone-Rig
+
+Die vier v0.5-PNGs liegen im separaten Verzeichnis [`hair-v05`](anime25d/models/atelier-anime-01/hair-v05/manifest.json). Sie verwenden das Zeichenbrett 1024 × 1536. Die Bilddateien sind auf ihre Alphabereiche zugeschnitten und über `bounds` registriert. Im Manifest steht das Hinterhaar vor dem Körper in der Zeichenreihenfolge. Seitensträhnen und Pony werden über dem Kopf gezeichnet, während die Tiefensortierung Arme weiterhin davor einordnen kann.
+
+Für die neutrale Pose sitzt der Pony 17 Pixel höher, bei 104 % Breite und 92 % Höhe um den Anker `(506, 16)`. Das Hinterhaar sitzt 6 Pixel höher, die Seitensträhnen jeweils 5 Pixel weiter außen und 3 Pixel höher. `L` und `R` gelten aus Sicht der Figur. Alle vier Ebenen folgen dem vorhandenen Kopfknochen. Der Drehpunkt des Rigs liegt an der Kinnlinie bei `(506, 211)`. `(506, 185)` in den Quellmanifesten ist eine Markierung der Illustration.
+
+### Gesicht vorbereiten
+
+Die privaten Ebenensätze `face-v04` und `eyes-v05` enthalten zugeschnittene PNGs, registrierte Grenzen, Knochenreferenzen und Anker. Der v0.4-Referenzkopf stimmt pixelgenau mit dem v0.3-Kopf überein. Bei der Rekonstruktion aus Basis, Brauen, offenen Augen, Nase und Mund bleiben geringe Farbabstände an einzelnen Konturen sichtbar. Für einen späteren Wechsel muss der in der Körpertextur enthaltene Originalkopf gegen die saubere Kopfebene getauscht und der Übergang zu Hals und Kinn mit denselben Gewichten gerendert werden.
+
+### Zeichnerische Korrekturen für die Animation
+
+| Funktion | Was die Zeichnung braucht |
+| --- | --- |
+| Blinzeln | Augenhöhlen im sauberen Kopf von Hand retuschieren. Je Seite Lidschluss und Zwischenstufen mit zur offenen Form passender Wimpernlinie, Lidfalte und Schattierung zeichnen. Den Übergang zur angrenzenden Haut ohne abgeschnittenen Farbrand prüfen. |
+| Blickrichtungen | Gleichmäßiges Augenweiß auch hinter der neutralen Iris zeichnen. Iris und Pupille sauber freistellen und Reflexe als eigene Ebene vorbereiten. Je Auge eine Maske an der tatsächlichen Lidöffnung erstellen. Bei Links-, Rechts-, Hoch- und Tiefblick die dunklen Reste am Irisrand und die Rekonstruktion der Wimpernlinie kontrollieren. |
+| Haarbewegung | Ansatz am Scheitel und hinter die sichtbaren Strähnen reichende Überlappungen ausmalen. Lichtkante und Randfarbe von Hinterhaar und Pony aufeinander abstimmen. Lange Strähnen in Ansatz, Mittelstück und Spitzen unterteilen. Bei geneigtem Kopf brauchen Schulter und Nacken getrennte Verdeckungen, bevor sich die Spitzen gewichtet bewegen. |
+
+### Im Browser prüfen
+
+In der A-Pose die Haarvorschau ein- und ausschalten und prüfen, dass Augen und Mund frei bleiben. Den Kopf nach beiden Seiten neigen, drehen, nach vorn und zurück kippen. Anschließend den Oberkörper neigen, **Winken** ausprobieren und ein PNG exportieren. Starke Kopf- und Rumpfdrehungen bleiben eine Projektion der Vorderansicht. Schulterlange Strähnen können bei extremen Kopfneigungen noch in eine Schulter ragen.

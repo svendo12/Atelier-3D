@@ -18,7 +18,7 @@ import { createBodyShapePanel } from './body-shape-panel.js';
 import { readBodyShapeSettings } from './vrm-body-shapes.js';
 import { createPoseLibrary, readLibraryBookmark } from './pose-library.js';
 import { createLibraryRig, libraryControls } from './pose-library-rig.js';
-import { animeModels, DEFAULT_ANIME_MODEL, readAnimeClothing, readAnimeModel } from './anime25d/catalog.js';
+import { animeModels, DEFAULT_ANIME_MODEL, readAnimeClothing, readAnimeModel } from './anime25d/catalog.js?v=2532';
 
 // ATELIER 3D — erster Prototyp. Alle Einstellungen bleiben lokal im Browser.
 const STORAGE_KEY = 'atelier3d-prototyp-v1';
@@ -89,6 +89,7 @@ const DEFAULTS = {
   libraryPose: null,
   displayMode: '2.5d', anime25dModel: DEFAULT_ANIME_MODEL, anime25dView: 'front', animeShowRig: false,
   animeClothing: {},
+  animeHairPreview: false,
   model: 'mannequin', style: 'anime', height: 1, head: 1, shoulders: 1, torso: 1, legs: 1, chest: 1, glutes: 1,
   leftArm: 12, rightArm: 12, leftElbow: 0, rightElbow: 0,
   leftLeg: 0, rightLeg: 0, leftKnee: 0, rightKnee: 0,
@@ -166,6 +167,7 @@ function readState(input) {
   state.anime25dView = DEFAULTS.anime25dView;
   state.animeShowRig = input.animeShowRig === true;
   state.animeClothing = readAnimeClothing(input.animeClothing);
+  state.animeHairPreview = input.animeHairPreview === true;
   state.faces = {};
   state.appearances = {};
   state.bodyShapes = {};
@@ -576,6 +578,8 @@ const animeCredits = document.getElementById('animeModelCredits');
 const animeModeStatus = document.getElementById('animeModeStatus');
 const animeWarning = document.getElementById('animePoseWarning');
 const animeGuide = document.getElementById('animeShowRig');
+const animeHairPreview = document.getElementById('animeHairPreview');
+const animeHairError = document.getElementById('animeHairError');
 const animeClothes = document.getElementById('animeClothes');
 const animeClothesFields = document.getElementById('animeClothesFields');
 let animeViewport;
@@ -865,7 +869,7 @@ function syncPresetButtons() {
 }
 
 function updateAnimePose() {
-  const warning = animeViewport.update(state.animeShowRig, state.animeClothing[animeViewport.modelId]);
+  const warning = animeViewport.update(state.animeShowRig, state.animeClothing[animeViewport.modelId], state.animeHairPreview);
   if (animeWarning.textContent !== warning) animeWarning.textContent = warning;
   animeWarning.hidden = !warning;
 }
@@ -903,6 +907,10 @@ function syncDisplayUi() {
   document.getElementById('figure3dOptions').hidden = wantsAnime;
   document.getElementById('animeViewControls').hidden = !animeActive;
   document.getElementById('animeTorsoControls').hidden = !animeActive;
+  const currentAnime = animeActive && animeViewport.modelId === state.anime25dModel;
+  animeHairPreview.parentElement.hidden = !(currentAnime && animeViewport.hairPreview);
+  animeHairPreview.checked = state.animeHairPreview;
+  animeHairError.hidden = !(currentAnime && animeViewport.hairPreviewError);
   animeGuide.checked = state.animeShowRig;
   animeWarning.hidden = true;
   workspace.classList.toggle('is-anime25d', animeActive);
@@ -932,7 +940,7 @@ async function syncDisplayMode() {
     animeModeStatus.textContent = `${model.label} wird geladen …`;
     animeModeStatus.hidden = false;
     try {
-      const { createAnimeViewport } = await import('./anime25d/viewport.js');
+      const { createAnimeViewport } = await import('./anime25d/viewport.js?v=2532');
       if (request !== displayRequest) return;
       const view = await createAnimeViewport({ bones: mannequin.bones, hips, modelId, model });
       if (request !== displayRequest) {
@@ -1309,6 +1317,11 @@ animeModelSelect.addEventListener('change', async () => {
 });
 animeGuide.addEventListener('change', () => {
   state.animeShowRig = animeGuide.checked;
+  if (animeViewport) updateAnimePose();
+  saveState();
+});
+animeHairPreview.addEventListener('change', () => {
+  state.animeHairPreview = animeHairPreview.checked;
   if (animeViewport) updateAnimePose();
   saveState();
 });

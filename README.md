@@ -2,7 +2,7 @@
 
 [Webdemo öffnen](https://svendo12.github.io/Atelier-3D/)
 
-Die Webdemo startet mit der gezeichneten Atelier-Demonstrationsfigur. Unter **Figur → Animefigur** kannst du auch **Atelier Anime 01**, **Aka** und **Midori** in Vorderansicht wählen. Für Atelier Anime 01 kannst du unter **Kleidung** Bandeau und Slip getrennt schalten. [Rig und Tests](ANIME25D.md) · [Urheber und Lizenz von Aka und Midori](anime25d/models/AKA-MIDORI.md)
+Die Webdemo startet mit der gezeichneten Atelier-Demonstrationsfigur. Unter **Figur → Animefigur** kannst du auch **Atelier Anime 01**, **Aka** und **Midori** in Vorderansicht wählen. Für Atelier Anime 01 kannst du unter **Kleidung** Bandeau und Slip getrennt schalten. Unter **Figur → Haarvorschau v0.5** lässt sich eine Frisur zuschalten. [Rig und Tests](ANIME25D.md) · [Urheber und Lizenz von Aka und Midori](anime25d/models/AKA-MIDORI.md)
 Unter **Figur → Darstellungsart** kannst du zur 3D-Gliederpuppe wechseln.
 **Pose** enthält die Gelenkregler, 50 Bibliotheksposen und 15 Bewegungen.
 Unter **Ansicht** kannst du die projizierten 2D-Gelenke einblenden.

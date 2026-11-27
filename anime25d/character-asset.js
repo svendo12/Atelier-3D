@@ -128,16 +128,8 @@ function pngPath(path, manifestUrl) {
   return new URL(path, manifestUrl).href;
 }
 
-export function prepareCharacter(manifest, manifestUrl) {
-  requireValue(manifest?.format === 'atelier-anime25d' && manifest.version === 1 &&
-    manifest.view === 'front' && typeof manifest.name === 'string' && manifest.name.trim(),
-    'Ungültiges Anime-Modellmanifest. Erwartet wird Version 1 in Vorderansicht.');
-  const credits = manifest.credits;
-  requireValue([credits?.author, credits?.license].every(value => typeof value === 'string' && value.trim()),
-    'Urheber und Lizenz müssen im Manifest angegeben sein.');
-  const artboard = readArtboard(manifest.artboard);
-  const rig = readRig(manifest.joints, artboard);
-  requireValue(Array.isArray(manifest.layers) && numeric(manifest.layers.length, 1, 96),
+function prepareLayers(layers, rig, manifestUrl) {
+  requireValue(Array.isArray(layers) && numeric(layers.length, 1, 96),
     'Das Modell benötigt mindestens eine und höchstens 96 Ebenen.');
 
   const order = Object.create(null);
@@ -145,7 +137,7 @@ export function prepareCharacter(manifest, manifestUrl) {
   const slots = [];
   const files = new Map();
   const attachments = {};
-  for (const layer of manifest.layers) {
+  for (const layer of layers) {
     const { id, kind, element, bone, bounds, order: layerOrder, depthSlot } = layer ?? {};
     requireValue(typeof id === 'string' && idPattern.test(id) && !files.has(id) &&
       typeof element === 'string' && idPattern.test(element) && layerKinds.has(kind) &&
@@ -161,7 +153,19 @@ export function prepareCharacter(manifest, manifestUrl) {
     slots.push({ id, name: element, bone, attachment: id, color: '#ffffff', blend: 'normal' });
     attachments[id] = { [id]: attachmentFor(layer, rig) };
   }
+  return { order, depth, slots, files, attachments };
+}
 
+export function prepareCharacter(manifest, manifestUrl) {
+  requireValue(manifest?.format === 'atelier-anime25d' && manifest.version === 1 &&
+    manifest.view === 'front' && typeof manifest.name === 'string' && manifest.name.trim(),
+    'Ungültiges Anime-Modellmanifest. Erwartet wird Version 1 in Vorderansicht.');
+  const credits = manifest.credits;
+  requireValue([credits?.author, credits?.license].every(value => typeof value === 'string' && value.trim()),
+    'Urheber und Lizenz müssen im Manifest angegeben sein.');
+  const artboard = readArtboard(manifest.artboard);
+  const rig = readRig(manifest.joints, artboard);
+  const { order, depth, slots, files, attachments } = prepareLayers(manifest.layers, rig, manifestUrl);
   return { rig, order, depth, files, credits, doc: {
     format: 'openbone', version: 1, name: manifest.name.trim(), ...artboard,
     background: '#1a1f2c', fps: 30, images: [],
@@ -171,10 +175,7 @@ export function prepareCharacter(manifest, manifestUrl) {
   } };
 }
 
-export async function loadCharacterAsset(manifestUrl, prepareTexture) {
-  const response = await fetch(manifestUrl);
-  requireValue(response.ok, 'Das Modellmanifest konnte nicht geladen werden.');
-  const { doc, rig, order, depth, files, credits } = prepareCharacter(await response.json(), manifestUrl);
+async function loadTextures(files, prepareTexture, maxPixels = 48_000_000) {
   const textures = new Map();
   const loader = new TextureLoader();
   const loaded = await Promise.allSettled([...files].map(async ([id, url]) => {
@@ -194,10 +195,55 @@ export async function loadCharacterAsset(manifestUrl, prepareTexture) {
     for (const texture of textures.values()) texture.dispose();
     throw failure.reason;
   }
-  doc.images = loaded.map(result => result.value);
-  if (doc.images.reduce((pixels, image) => pixels + image.width * image.height, 0) > 48_000_000) {
+  const images = loaded.map(result => result.value);
+  if (images.reduce((pixels, image) => pixels + image.width * image.height, 0) > maxPixels) {
     for (const texture of textures.values()) texture.dispose();
     throw new Error('Die PNG-Ebenen belegen zusammen zu viel Texturspeicher. Schneide transparente Ränder beim Export zu.');
   }
-  return { asset: { doc, textures, baseUrl: String(manifestUrl) }, rig, order, depth, credits };
+  return { images, textures };
+}
+
+async function readHairPreview(url, modelId, doc, rig, files, prepareTexture) {
+  const response = await fetch(url);
+  requireValue(response.ok, 'Das Manifest der Haarvorschau konnte nicht geladen werden.');
+  const manifest = await response.json();
+  const artboard = readArtboard(manifest.artboard);
+  const head = rig.get('head');
+  requireValue(manifest.format === 'atelier-anime25d-layer-set' && manifest.version === 1 &&
+    manifest.model === modelId && Object.entries(artboard).every(([key, value]) => value === doc[key]) &&
+    manifest.rigHeadPivotPx?.[0] === head.x + doc.originX &&
+    manifest.rigHeadPivotPx?.[1] === doc.originY - head.y &&
+    Array.isArray(manifest.layers) && manifest.layers.every(layer => layer?.kind === 'hair' && layer.bone === 'head'),
+    'Die Haarvorschau passt nicht zur Bindepose dieser Figur.');
+  const hair = prepareLayers(manifest.layers, rig, url);
+  requireValue(files.size + hair.files.size <= 96 && [...hair.files.keys()].every(id => !files.has(id)),
+    'Die Haarvorschau überschneidet sich mit den Ebenen der Figur.');
+  const remainingPixels = 48_000_000 - doc.images.reduce((sum, image) => sum + image.width * image.height, 0);
+  const textures = await loadTextures(hair.files, prepareTexture, remainingPixels);
+  return { ...hair, ...textures };
+}
+
+export async function loadCharacterAsset(manifestUrl, prepareTexture, { modelId, hairPreview } = {}) {
+  const response = await fetch(manifestUrl);
+  requireValue(response.ok, 'Das Modellmanifest konnte nicht geladen werden.');
+  const { doc, rig, order, depth, files, credits } = prepareCharacter(await response.json(), manifestUrl);
+  const { images, textures } = await loadTextures(files, prepareTexture);
+  doc.images = images;
+  let hairIds = new Set();
+  let hairPreviewError = false;
+  if (hairPreview) {
+    try {
+      const hair = await readHairPreview(hairPreview, modelId, doc, rig, files, prepareTexture);
+      hairIds = new Set(hair.files.keys());
+      doc.images.push(...hair.images);
+      doc.skeleton.slots.push(...hair.slots);
+      Object.assign(doc.skeleton.skins[0].attachments, hair.attachments);
+      Object.assign(order, hair.order);
+      Object.assign(depth, hair.depth);
+      for (const [id, texture] of hair.textures) textures.set(id, texture);
+    } catch {
+      hairPreviewError = true;
+    }
+  }
+  return { asset: { doc, textures, baseUrl: String(manifestUrl) }, rig, order, depth, credits, hairIds, hairPreviewError };
 }

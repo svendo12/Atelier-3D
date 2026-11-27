@@ -7,6 +7,7 @@ export const animeModels = {
   'atelier-anime-01': {
     label: 'Atelier Anime 01 – Basisfigur',
     manifest: new URL('./models/atelier-anime-01/manifest.json', import.meta.url),
+    hairPreview: new URL('./models/atelier-anime-01/hair-v05/manifest.json', import.meta.url),
     articulatedFeet: true,
     headMinScale: .80,
     clothing: { 'minimal-bandeau': 'Bandeau', 'minimal-briefs': 'Slip' }

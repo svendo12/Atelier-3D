@@ -1,0 +1,102 @@
+{
+  "format": "atelier-anime25d-layer-set",
+  "version": 1,
+  "model": "atelier-anime-01",
+  "artboard": {
+    "width": 1024,
+    "height": 1536,
+    "originX": 512,
+    "originY": 1536
+  },
+  "sourceVersion": "0.5-working-eyes-hair",
+  "placementAnchorPx": [
+    506,
+    16
+  ],
+  "rigHeadPivotPx": [
+    506,
+    211
+  ],
+  "layers": [
+    {
+      "id": "hair-back",
+      "image": "layers/hair-back.png",
+      "kind": "hair",
+      "element": "back",
+      "bone": "head",
+      "bounds": [
+        -137,
+        1128,
+        130,
+        1540
+      ],
+      "order": 4,
+      "sourceBoundsPx": [
+        375,
+        2,
+        642,
+        414
+      ]
+    },
+    {
+      "id": "hair-side-right",
+      "image": "layers/hair-side-right.png",
+      "kind": "hair",
+      "element": "side-right",
+      "bone": "head",
+      "bounds": [
+        -126,
+        1234,
+        -62,
+        1465
+      ],
+      "order": 31,
+      "sourceBoundsPx": [
+        391,
+        74,
+        455,
+        305
+      ]
+    },
+    {
+      "id": "hair-side-left",
+      "image": "layers/hair-side-left.png",
+      "kind": "hair",
+      "element": "side-left",
+      "bone": "head",
+      "bounds": [
+        51,
+        1229,
+        115,
+        1465
+      ],
+      "order": 32,
+      "sourceBoundsPx": [
+        558,
+        74,
+        622,
+        310
+      ]
+    },
+    {
+      "id": "hair-bangs",
+      "image": "layers/hair-bangs.png",
+      "kind": "hair",
+      "element": "front",
+      "bone": "head",
+      "bounds": [
+        -121.44,
+        1303.32,
+        109.44,
+        1537.92
+      ],
+      "order": 33,
+      "sourceBoundsPx": [
+        395,
+        15,
+        617,
+        270
+      ]
+    }
+  ]
+}
