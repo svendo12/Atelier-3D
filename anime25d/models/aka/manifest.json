@@ -1,0 +1,453 @@
+{
+  "format": "atelier-anime25d",
+  "version": 1,
+  "view": "front",
+  "name": "Aka",
+  "credits": {
+    "author": "seagetch",
+    "license": "CC BY 4.0",
+    "source": "https://github.com/Inochi2D/example-models",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "PSD-Ebenen gruppiert und zugeschnitten, Auflösung reduziert, neues OpenBone-Rig für Atelier 3D."
+  },
+  "artboard": {
+    "width": 948,
+    "height": 1703,
+    "originX": 356.4,
+    "originY": 1683.0
+  },
+  "joints": {
+    "pelvis": {
+      "position": [
+        0.0,
+        904.2
+      ]
+    },
+    "torso": {
+      "position": [
+        0.0,
+        1003.2
+      ]
+    },
+    "head": {
+      "position": [
+        0.0,
+        1240.8
+      ]
+    },
+    "leftArm": {
+      "position": [
+        -101.64,
+        1171.5
+      ],
+      "angle": -106.69924,
+      "length": 165.374
+    },
+    "leftForearm": {
+      "position": [
+        -149.16,
+        1013.1
+      ],
+      "angle": -114.22775,
+      "length": 231.599
+    },
+    "leftElbow": {
+      "position": [
+        -149.16,
+        1013.1
+      ],
+      "angle": -110.46349
+    },
+    "leftHand": {
+      "position": [
+        -244.2,
+        801.9
+      ],
+      "angle": -114.22775,
+      "length": 92
+    },
+    "leftThigh": {
+      "position": [
+        -62.7,
+        894.3
+      ],
+      "angle": -88.84536,
+      "length": 425.786
+    },
+    "leftShin": {
+      "position": [
+        -54.12,
+        468.6
+      ],
+      "angle": -89.49937,
+      "length": 339.913
+    },
+    "leftKnee": {
+      "position": [
+        -54.12,
+        468.6
+      ],
+      "angle": -89.17236
+    },
+    "leftFoot": {
+      "position": [
+        -51.15,
+        128.7
+      ],
+      "angle": -88.66334,
+      "length": 99.027
+    },
+    "rightArm": {
+      "position": [
+        100.65,
+        1173.48
+      ],
+      "angle": -72.95528,
+      "length": 167.748
+    },
+    "rightForearm": {
+      "position": [
+        149.82,
+        1013.1
+      ],
+      "angle": -53.03023,
+      "length": 227.172
+    },
+    "rightElbow": {
+      "position": [
+        149.82,
+        1013.1
+      ],
+      "angle": -62.99276
+    },
+    "rightHand": {
+      "position": [
+        286.44,
+        831.6
+      ],
+      "angle": -53.03023,
+      "length": 92
+    },
+    "rightThigh": {
+      "position": [
+        61.38,
+        894.3
+      ],
+      "angle": -88.26833,
+      "length": 425.895
+    },
+    "rightShin": {
+      "position": [
+        74.25,
+        468.6
+      ],
+      "angle": -92.30183,
+      "length": 336.872
+    },
+    "rightKnee": {
+      "position": [
+        74.25,
+        468.6
+      ],
+      "angle": -90.28508
+    },
+    "rightFoot": {
+      "position": [
+        60.72,
+        132.0
+      ],
+      "angle": -91.66296,
+      "length": 102.343
+    }
+  },
+  "layers": [
+    {
+      "id": "tail",
+      "kind": "accessory",
+      "element": "tail",
+      "image": "layers/tail.png",
+      "bone": "pelvis",
+      "order": 1,
+      "bounds": [
+        8.25,
+        292.05,
+        566.28,
+        797.61
+      ]
+    },
+    {
+      "id": "left-leg",
+      "kind": "body",
+      "element": "left-leg",
+      "image": "layers/left-leg.png",
+      "bone": "leftThigh",
+      "order": 5,
+      "bounds": [
+        -219.12,
+        11.22,
+        34.32,
+        927.63
+      ],
+      "mesh": {
+        "columns": 9,
+        "rows": 25,
+        "bend": {
+          "joint": "leftKnee",
+          "radius": 85
+        }
+      }
+    },
+    {
+      "id": "right-leg",
+      "kind": "body",
+      "element": "right-leg",
+      "image": "layers/right-leg.png",
+      "bone": "rightThigh",
+      "order": 5,
+      "bounds": [
+        -37.29,
+        8.25,
+        222.09,
+        927.3
+      ],
+      "mesh": {
+        "columns": 9,
+        "rows": 25,
+        "bend": {
+          "joint": "rightKnee",
+          "radius": 85
+        }
+      }
+    },
+    {
+      "id": "left-sleeve",
+      "kind": "clothing",
+      "element": "left-sleeve",
+      "image": "layers/left-sleeve.png",
+      "bone": "leftArm",
+      "order": 16,
+      "bounds": [
+        -262.68,
+        463.98,
+        -64.02,
+        1199.55
+      ],
+      "depthSlot": "left-arm",
+      "mesh": {
+        "columns": 13,
+        "rows": 21,
+        "bend": {
+          "joint": "leftElbow",
+          "radius": 76
+        }
+      }
+    },
+    {
+      "id": "right-sleeve",
+      "kind": "clothing",
+      "element": "right-sleeve",
+      "image": "layers/right-sleeve.png",
+      "bone": "rightArm",
+      "order": 16,
+      "bounds": [
+        45.54,
+        488.07,
+        299.97,
+        1203.18
+      ],
+      "depthSlot": "right-arm",
+      "mesh": {
+        "columns": 13,
+        "rows": 21,
+        "bend": {
+          "joint": "rightElbow",
+          "radius": 76
+        }
+      }
+    },
+    {
+      "id": "left-hand",
+      "kind": "body",
+      "element": "left-hand",
+      "image": "layers/left-hand.png",
+      "bone": "leftHand",
+      "order": 17,
+      "bounds": [
+        -326.37,
+        682.77,
+        -218.46,
+        815.1
+      ],
+      "depthSlot": "left-hand"
+    },
+    {
+      "id": "right-hand",
+      "kind": "body",
+      "element": "right-hand",
+      "image": "layers/right-hand.png",
+      "bone": "rightHand",
+      "order": 17,
+      "bounds": [
+        271.92,
+        757.68,
+        368.61,
+        865.92
+      ],
+      "depthSlot": "right-hand"
+    },
+    {
+      "id": "back-hair",
+      "kind": "hair",
+      "element": "back-hair",
+      "image": "layers/back-hair.png",
+      "bone": "head",
+      "order": 21,
+      "bounds": [
+        -182.16,
+        1222.32,
+        190.08,
+        1657.26
+      ]
+    },
+    {
+      "id": "neck",
+      "kind": "body",
+      "element": "neck",
+      "image": "layers/neck.png",
+      "bone": "torso",
+      "order": 24,
+      "bounds": [
+        -50.16,
+        1163.58,
+        59.73,
+        1339.8
+      ]
+    },
+    {
+      "id": "skirt",
+      "kind": "clothing",
+      "element": "skirt",
+      "image": "layers/skirt.png",
+      "bone": "pelvis",
+      "order": 28,
+      "bounds": [
+        -270.27,
+        685.41,
+        298.98,
+        1054.68
+      ]
+    },
+    {
+      "id": "top",
+      "kind": "clothing",
+      "element": "top",
+      "image": "layers/top.png",
+      "bone": "torso",
+      "order": 30,
+      "bounds": [
+        -116.49,
+        923.34,
+        121.11,
+        1227.27
+      ]
+    },
+    {
+      "id": "ribbon",
+      "kind": "clothing",
+      "element": "ribbon",
+      "image": "layers/ribbon.png",
+      "bone": "pelvis",
+      "order": 31,
+      "bounds": [
+        -111.87,
+        844.14,
+        121.77,
+        1055.01
+      ]
+    },
+    {
+      "id": "face",
+      "kind": "body",
+      "element": "face",
+      "image": "layers/face.png",
+      "bone": "head",
+      "order": 40,
+      "bounds": [
+        -111.21,
+        1236.51,
+        114.51,
+        1507.11
+      ]
+    },
+    {
+      "id": "left-eye",
+      "kind": "face",
+      "element": "left-eye",
+      "image": "layers/left-eye.png",
+      "bone": "head",
+      "order": 41,
+      "bounds": [
+        -89.76,
+        1311.09,
+        -9.57,
+        1409.43
+      ]
+    },
+    {
+      "id": "right-eye",
+      "kind": "face",
+      "element": "right-eye",
+      "image": "layers/right-eye.png",
+      "bone": "head",
+      "order": 41.1,
+      "bounds": [
+        20.13,
+        1314.72,
+        98.01,
+        1409.43
+      ]
+    },
+    {
+      "id": "mouth",
+      "kind": "face",
+      "element": "mouth",
+      "image": "layers/mouth.png",
+      "bone": "head",
+      "order": 41.2,
+      "bounds": [
+        -26.07,
+        1247.73,
+        30.03,
+        1300.2
+      ]
+    },
+    {
+      "id": "front-hair",
+      "kind": "hair",
+      "element": "front-hair",
+      "image": "layers/front-hair.png",
+      "bone": "head",
+      "order": 42,
+      "bounds": [
+        -120.45,
+        1248.06,
+        132.0,
+        1518.66
+      ]
+    },
+    {
+      "id": "hair-leaf",
+      "kind": "accessory",
+      "element": "hair-leaf",
+      "image": "layers/hair-leaf.png",
+      "bone": "head",
+      "order": 43,
+      "bounds": [
+        -51.15,
+        1486.65,
+        42.24,
+        1530.54
+      ]
+    }
+  ]
+}

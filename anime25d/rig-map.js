@@ -35,25 +35,68 @@ export const bindJoints = new Map([
   ...chain('left', -1), ...chain('right', 1)
 ].map(bone => [bone.id, bone]));
 
-export function bindLocal(boneId, x, y) {
-  const bone = bindJoints.get(boneId);
+export function bindLocal(boneId, x, y, rig = bindJoints) {
+  const bone = rig.get(boneId);
   const cos = Math.cos(bone.angle), sin = Math.sin(bone.angle);
   const dx = x - bone.x, dy = y - bone.y;
   return [cos * dx + sin * dy, -sin * dx + cos * dy];
 }
 
-export function openBoneSetup() {
-  return [...bindJoints.values()].map(({ id, parent, x, y, angle, length }) => {
-    const local = parent ? bindLocal(parent, x, y) : [x, y];
+export function openBoneSetup(rig = bindJoints) {
+  return [...rig.values()].map(({ id, parent, x, y, angle, length }) => {
+    const local = parent ? bindLocal(parent, x, y, rig) : [x, y];
     return {
       id, name: id, parent, x: local[0], y: local[1], length,
-      rotation: (angle - (bindJoints.get(parent)?.angle ?? 0)) * 180 / Math.PI,
+      rotation: (angle - (rig.get(parent)?.angle ?? 0)) * 180 / Math.PI,
       scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, inherit: 'normal'
     };
   });
 }
 
-export function createRigProjection(bones, hips) {
+export function createAssetRetargeter(rig, headMinScale = 0) {
+  const restHead = rig.get('head');
+  const restTorso = rig.get('torso');
+  const modelScale = Math.hypot(restHead.x - restTorso.x, restHead.y - restTorso.y) /
+    (bindJoints.get('head').y - bindJoints.get('torso').y);
+  const links = [...rig.values()].map(bone => ({
+    bone, reference: bindJoints.get(bone.id),
+    offset: bone.parent && bindLocal(bone.parent, bone.x, bone.y, rig)
+  }));
+  const mainChains = [['pelvis', 'torso', 'head']];
+  const limbChains = ['left', 'right'].flatMap(side => [
+    ['head', side + 'Arm', side + 'Elbow', side + 'Hand'],
+    ['pelvis', side + 'Thigh', side + 'Knee', side + 'Foot']
+  ]);
+
+  return source => {
+    const frames = new Map();
+    for (const { bone, reference, offset } of links) {
+      const pose = source.frames.get(bone.id);
+      const parent = frames.get(bone.parent);
+      const yaw = Math.atan2(pose.c, pose.a) - reference.angle + bone.angle;
+      const minimum = bone.id === 'head' ? headMinScale : 0;
+      const across = Math.max(minimum, Math.hypot(pose.b, pose.d));
+      const along = Math.max(minimum, Math.hypot(pose.a, pose.c));
+      const cos = Math.cos(yaw), sin = Math.sin(yaw);
+      const x = parent ? parent.x + parent.a * offset[0] + parent.b * offset[1]
+        : bone.x + (pose.x - reference.x) * modelScale;
+      const y = parent ? parent.y + parent.c * offset[0] + parent.d * offset[1]
+        : bone.y + (pose.y - reference.y) * modelScale;
+      frames.set(bone.id, { a: cos * along, b: -sin * across, c: sin * along, d: cos * across, x, y });
+    }
+    function end(id) {
+      const frame = frames.get(id), bone = rig.get(id);
+      return { x: frame.x + frame.a * bone.length, y: frame.y + frame.c * bone.length };
+    }
+    const chains = [
+      ...mainChains.map(chain => chain.map(id => frames.get(id))),
+      ...limbChains.map(chain => [...chain.map(id => frames.get(id)), end(chain.at(-1))])
+    ];
+    return { ...source, frames, chains };
+  };
+}
+
+export function createRigProjection(bones, hips, articulatedFeet = false) {
   const world = node => node.getWorldPosition(new Vector3()).multiplyScalar(pixelsPerUnit);
   const local = (node, x, y, z) => node.localToWorld(new Vector3(x, y, z)).multiplyScalar(pixelsPerUnit);
   const front = new Vector3(0, 0, 1);
@@ -113,8 +156,9 @@ export function createRigProjection(bones, hips) {
       const thigh = world(bones[side + 'Leg']);
       const knee = world(bones[side + 'Knee']);
       const ankle = world(bones[side + 'Foot']);
-      const foot = bones[side + 'Foot'].position;
-      const toe = local(bones[side + 'Knee'], foot.x, foot.y - .1067, foot.z);
+      const foot = bones[side + 'Foot'];
+      const toe = articulatedFeet ? local(foot, 0, -.1067 / foot.scale.y, 0)
+        : local(bones[side + 'Knee'], foot.position.x, foot.position.y - .1067, foot.position.z);
       const thighAngle = segment(side + 'Thigh', thigh, knee);
       const shinAngle = segment(side + 'Shin', knee, ankle);
       segment(side + 'Foot', ankle, toe);

@@ -56,10 +56,9 @@
         <div id="animeFigureOptions" class="model-controls mode-options" hidden>
           <label class="control-title" for="anime25dModel">Animefigur</label>
           <select id="anime25dModel">
-            <optgroup label="2.5D-Anime">
-              <option value="studio-demo">Atelier-Demonstrationsfigur</option>
-            </optgroup>
+            <optgroup label="2.5D-Anime"></optgroup>
           </select>
+          <p id="animeModelCredits" class="helper-text" hidden></p>
           <p class="helper-text">Vorderansicht. Verwende die Regler und Vorlagen unter Pose.</p>
         </div>
         <div id="figure3dOptions" class="mode-options">
@@ -197,6 +196,7 @@
           <details class="accordion">
             <summary>Oberkörper</summary>
             <div id="torsoPoseControls" class="sliders"></div>
+            <div id="animeTorsoControls" class="sliders" hidden></div>
           </details>
           <details class="accordion">
             <summary>Arme</summary>
@@ -223,6 +223,12 @@
 
       <section id="clothesPanel" class="tool-panel hidden">
         <h1>Kleiderschrank</h1>
+        <div id="animeClothes" class="stack" hidden>
+          <h2>Basiskleidung</h2>
+          <div id="animeClothesFields" class="stack"></div>
+          <button id="animeClothesReset" class="btn btn-secondary" type="button">Basiskleidung wiederherstellen</button>
+        </div>
+        <div data-only-3d>
         <div class="accordions">
           <details class="accordion" open>
             <summary>Kleidung</summary>
@@ -289,6 +295,7 @@
         </div>
         <p id="clothesAvailability" class="helper-text"></p>
         <button type="button" class="btn btn-secondary wardrobe-palette-link" id="wardrobePaletteLink" hidden data-open-tools="appearance">Kleidungsfarben öffnen</button>
+        </div>
       </section>
 
       <section id="lightPanel" class="tool-panel hidden">
@@ -350,6 +357,6 @@
     </main>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./app.js?v=25901"></script>
+  <script type="module" src="./app.js?v=2531"></script>
 </body>
 </html>

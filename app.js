@@ -18,6 +18,7 @@ import { createBodyShapePanel } from './body-shape-panel.js';
 import { readBodyShapeSettings } from './vrm-body-shapes.js';
 import { createPoseLibrary, readLibraryBookmark } from './pose-library.js';
 import { createLibraryRig, libraryControls } from './pose-library-rig.js';
+import { animeModels, DEFAULT_ANIME_MODEL, readAnimeClothing, readAnimeModel } from './anime25d/catalog.js';
 
 // ATELIER 3D — erster Prototyp. Alle Einstellungen bleiben lokal im Browser.
 const STORAGE_KEY = 'atelier3d-prototyp-v1';
@@ -57,6 +58,10 @@ const EXTRA_LIMB_FIELDS = [
   { key: 'leftHipTwist', label: 'Bein links aus der Hüfte drehen', min: -40, max: 45, step: 1, unit: '°' },
   { key: 'rightHipTwist', label: 'Bein rechts aus der Hüfte drehen', min: -40, max: 45, step: 1, unit: '°' }
 ];
+const ANIME_TORSO_FIELDS = [
+  { key: 'torsoPitch', label: 'Oberkörper vor / zurück neigen', min: -25, max: 70, step: 1, unit: '°' },
+  { key: 'torsoTilt', label: 'Oberkörper seitlich neigen', min: -35, max: 35, step: 1, unit: '°' }
+];
 const KNEE_TWIST_FIELDS = ['left', 'right'].map((side, i) => ({
   key: side + 'KneeTwist', label: 'Knie ' + ['links', 'rechts'][i] + ' drehen', min: -20, max: 30, step: 1, unit: '°'
 }));
@@ -67,11 +72,12 @@ const HAND_FIELDS = ['left', 'right'].map(side => [
     key: side + fingerNames[j] + 'Curl', label: label + ' beugen', min: 0, max: 100, step: 1, unit: '%'
   }))
 ]);
-const POSE_FIELDS = [...BASIC_POSE_FIELDS, ...EXTRA_LIMB_FIELDS, ...KNEE_TWIST_FIELDS, ...HAND_FIELDS.flat()];
+const POSE_FIELDS = [...BASIC_POSE_FIELDS, ...ANIME_TORSO_FIELDS, ...EXTRA_LIMB_FIELDS, ...KNEE_TWIST_FIELDS, ...HAND_FIELDS.flat()];
 const CHARACTER_FIELDS = [...BODY_FIELDS, ...POSE_FIELDS];
 const HIP_FIELDS = new Map([['leftLeg', 'leftKnee'], ['rightLeg', 'rightKnee']]);
 const POSE_OFFSETS = {
   headTurn: 0, headPitch: 0, headTilt: 0, torsoTurn: 0,
+  torsoPitch: 0, torsoTilt: 0,
   ...Object.fromEntries([...EXTRA_LIMB_FIELDS, ...KNEE_TWIST_FIELDS, ...HAND_FIELDS.flat()].map(({ key }) => [key, 0]))
 };
 const DEFAULTS = {
@@ -81,7 +87,8 @@ const DEFAULTS = {
   clothGravity: true,
   importedModel: null,
   libraryPose: null,
-  displayMode: '2.5d', anime25dModel: 'studio-demo', anime25dView: 'front', animeShowRig: false,
+  displayMode: '2.5d', anime25dModel: DEFAULT_ANIME_MODEL, anime25dView: 'front', animeShowRig: false,
+  animeClothing: {},
   model: 'mannequin', style: 'anime', height: 1, head: 1, shoulders: 1, torso: 1, legs: 1, chest: 1, glutes: 1,
   leftArm: 12, rightArm: 12, leftElbow: 0, rightElbow: 0,
   leftLeg: 0, rightLeg: 0, leftKnee: 0, rightKnee: 0,
@@ -155,9 +162,10 @@ function sameVrmFile(a, b) {
 function readState(input) {
   Object.assign(state, POSE_OFFSETS, LIGHT_DEFAULTS, { chest: DEFAULTS.chest, glutes: DEFAULTS.glutes });
   state.displayMode = input.displayMode === '2.5d' ? '2.5d' : '3d';
-  state.anime25dModel = DEFAULTS.anime25dModel;
+  state.anime25dModel = readAnimeModel(input.anime25dModel);
   state.anime25dView = DEFAULTS.anime25dView;
   state.animeShowRig = input.animeShowRig === true;
+  state.animeClothing = readAnimeClothing(input.animeClothing);
   state.faces = {};
   state.appearances = {};
   state.bodyShapes = {};
@@ -433,7 +441,8 @@ function applyMannequinLimbs(pose) {
   applyLimbPose(mannequin.bones, pose, 'hanging', { left: armL.digits, right: armR.digits });
 }
 function applyMannequinJoints(pose) {
-  torsoGroup.rotation.y = deg(pose.torsoTurn);
+  torsoGroup.rotation.set(animeViewport ? deg(pose.torsoPitch) : 0, deg(pose.torsoTurn),
+    animeViewport ? deg(pose.torsoTilt) : 0, 'YXZ');
   headPivot.rotation.set(-deg(pose.headPitch), deg(pose.headTurn), deg(pose.headTilt), 'YXZ');
   applyMannequinLimbs(pose);
 }
@@ -559,9 +568,16 @@ const toolsToggle = document.getElementById('toggleTools');
 const toolButtons = [...document.querySelectorAll('[data-tab]')];
 const animeTabs = new Set(['figure', 'pose', 'view', 'files']);
 const modeSelect = document.getElementById('displayMode');
+const animeModelSelect = document.getElementById('anime25dModel');
+animeModelSelect.querySelector('optgroup').replaceChildren(
+  ...Object.entries(animeModels).map(([id, model]) => new Option(model.label, id))
+);
+const animeCredits = document.getElementById('animeModelCredits');
 const animeModeStatus = document.getElementById('animeModeStatus');
 const animeWarning = document.getElementById('animePoseWarning');
 const animeGuide = document.getElementById('animeShowRig');
+const animeClothes = document.getElementById('animeClothes');
+const animeClothesFields = document.getElementById('animeClothesFields');
 let animeViewport;
 let displayRequest = 0;
 const facePanel = createFacePanel({
@@ -849,26 +865,52 @@ function syncPresetButtons() {
 }
 
 function updateAnimePose() {
-  const warning = animeViewport.update(state.animeShowRig);
+  const warning = animeViewport.update(state.animeShowRig, state.animeClothing[animeViewport.modelId]);
   if (animeWarning.textContent !== warning) animeWarning.textContent = warning;
   animeWarning.hidden = !warning;
+}
+
+function animeClothingOptions() {
+  return animeModels[animeViewport?.modelId]?.clothing;
+}
+
+function syncAnimeClothing() {
+  const id = animeViewport?.modelId;
+  const items = Object.entries(animeClothingOptions() ?? {});
+  animeClothes.hidden = !items.length;
+  animeClothesFields.replaceChildren(...items.map(([layer, name]) => {
+    const label = document.createElement('label');
+    label.className = 'check-label';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.layer = layer;
+    checkbox.checked = state.animeClothing[id]?.[layer] !== false;
+    label.append(checkbox, ' ' + name);
+    return label;
+  }));
+  document.getElementById('animeClothesReset').disabled = !state.animeClothing[id];
 }
 
 function syncDisplayUi() {
   const wantsAnime = state.displayMode === '2.5d';
   const animeActive = Boolean(animeViewport);
   modeSelect.value = state.displayMode;
-  document.getElementById('anime25dModel').value = state.anime25dModel;
+  animeModelSelect.value = state.anime25dModel;
+  const credits = animeViewport?.credits;
+  animeCredits.hidden = !credits;
+  animeCredits.textContent = credits ? `${credits.author} · ${credits.license}` : '';
   document.getElementById('animeFigureOptions').hidden = !wantsAnime;
   document.getElementById('figure3dOptions').hidden = wantsAnime;
   document.getElementById('animeViewControls').hidden = !animeActive;
+  document.getElementById('animeTorsoControls').hidden = !animeActive;
   animeGuide.checked = state.animeShowRig;
   animeWarning.hidden = true;
   workspace.classList.toggle('is-anime25d', animeActive);
   controls.enabled = !animeActive;
   stage.setAttribute('aria-label', animeActive ? '2.5D-Anime in Vorderansicht' : 'Interaktive 3D-Ansicht');
-  modelLabel.textContent = animeActive ? '2.5D-Anime · Demonstrationsfigur' : modelName(state.model);
-  for (const button of toolButtons) button.hidden = animeActive && !animeTabs.has(button.dataset.tab);
+  modelLabel.textContent = animeActive ? `2.5D-Anime · ${animeViewport.label}` : modelName(state.model);
+  syncAnimeClothing();
+  for (const button of toolButtons) button.hidden = animeActive && !allowsAnimeTab(button.dataset.tab);
   changeTab(activeTab, panelOpen);
   syncSliders();
 }
@@ -883,25 +925,30 @@ async function syncDisplayMode() {
     applyCharacter();
     return;
   }
-  if (!animeViewport) {
+  const modelId = state.anime25dModel;
+  const model = animeModels[modelId];
+  if (animeViewport?.modelId !== modelId) {
     syncDisplayUi();
-    animeModeStatus.textContent = '2.5D-Demonstrationsfigur wird geladen …';
+    animeModeStatus.textContent = `${model.label} wird geladen …`;
     animeModeStatus.hidden = false;
     try {
       const { createAnimeViewport } = await import('./anime25d/viewport.js');
       if (request !== displayRequest) return;
-      const view = await createAnimeViewport({ bones: mannequin.bones, hips });
+      const view = await createAnimeViewport({ bones: mannequin.bones, hips, modelId, model });
       if (request !== displayRequest) {
         view.dispose();
         return;
       }
+      animeViewport?.dispose();
       animeViewport = view;
     } catch (error) {
       if (request !== displayRequest) return;
-      console.warn('2.5D-Demonstrationsfigur', error);
-      state.displayMode = '3d';
+      console.warn('2.5D-Modell', error);
+      state.anime25dModel = animeViewport?.modelId ?? DEFAULT_ANIME_MODEL;
+      if (!animeViewport) state.displayMode = '3d';
       syncDisplayUi();
-      animeModeStatus.textContent = 'Die 2.5D-Demonstrationsfigur konnte nicht geladen werden. Die 3D-Ansicht ist verfügbar.';
+      animeModeStatus.textContent = `${model.label} konnte nicht geladen werden. ${error.message}`;
+      if (animeViewport) updateAnimePose();
       saveState();
       return;
     }
@@ -1187,6 +1234,7 @@ function buildSliders(fields, container, apply = applyCharacter) {
 buildSliders(BODY_FIELDS, document.getElementById('bodyControls'));
 buildSliders(BASIC_POSE_FIELDS.filter(field => field.key.startsWith('head')), document.getElementById('headPoseControls'));
 buildSliders(BASIC_POSE_FIELDS.filter(field => field.key === 'torsoTurn'), document.getElementById('torsoPoseControls'));
+buildSliders(ANIME_TORSO_FIELDS, document.getElementById('animeTorsoControls'));
 const limbFields = [...BASIC_POSE_FIELDS, ...EXTRA_LIMB_FIELDS, ...KNEE_TWIST_FIELDS];
 buildSliders(limbFields.filter(field => /Arm|Elbow|Forearm/.test(field.key)), document.getElementById('extraLimbControls'));
 buildSliders(limbFields.filter(field => /Leg|Knee|Hip/.test(field.key)), document.getElementById('legPoseControls'));
@@ -1206,8 +1254,12 @@ function syncSliders(fields = [...BODY_FIELDS, ...POSE_FIELDS, ...LIGHT_FIELDS])
     input.previousElementSibling.querySelector('output').value = `${state[field.key]}${field.unit}`;
   }
 }
+function allowsAnimeTab(tab) {
+  return animeTabs.has(tab) || (tab === 'clothes' && Boolean(animeClothingOptions()));
+}
+
 function changeTab(tab, open = true) {
-  if (animeViewport && !animeTabs.has(tab)) tab = 'figure';
+  if (animeViewport && !allowsAnimeTab(tab)) tab = 'figure';
   if (activeTab !== tab) settingsPanel.scrollTop = 0;
   activeTab = tab;
   panelOpen = open;
@@ -1250,9 +1302,31 @@ modeSelect.addEventListener('change', () => {
   syncDisplayMode();
   saveState();
 });
+animeModelSelect.addEventListener('change', async () => {
+  state.anime25dModel = readAnimeModel(animeModelSelect.value);
+  await syncDisplayMode();
+  saveState();
+});
 animeGuide.addEventListener('change', () => {
   state.animeShowRig = animeGuide.checked;
   if (animeViewport) updateAnimePose();
+  saveState();
+});
+animeClothesFields.addEventListener('change', event => {
+  const { modelId } = animeViewport;
+  const { layer } = event.target.dataset;
+  state.animeClothing = readAnimeClothing({
+    ...state.animeClothing,
+    [modelId]: { ...state.animeClothing[modelId], [layer]: event.target.checked }
+  });
+  document.getElementById('animeClothesReset').disabled = !state.animeClothing[modelId];
+  updateAnimePose();
+  saveState();
+});
+document.getElementById('animeClothesReset').addEventListener('click', () => {
+  state.animeClothing = readAnimeClothing({ ...state.animeClothing, [animeViewport.modelId]: {} });
+  syncAnimeClothing();
+  updateAnimePose();
   saveState();
 });
 modelSelect.addEventListener('change', () => selectModel(modelSelect.value));
@@ -1397,7 +1471,7 @@ window.addEventListener('resize',resize);
 applyCharacter();syncSliders();resize();syncImportPanel();syncAppearancePanel();
 if (initialModel !== DEFAULTS.model) selectModel(initialModel);
 restoreLibraryPose();
-syncDisplayMode();
+if (state.displayMode === '2.5d') syncDisplayMode();
 let lastFrameTime;
 renderer.setAnimationLoop(time => {
   const delta = lastFrameTime === undefined ? 0 : (time - lastFrameTime) / 1000;
