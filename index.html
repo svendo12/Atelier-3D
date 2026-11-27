@@ -4,91 +4,352 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#11141e" />
-  <meta name="description" content="Privates 3D-Zeichenstudio – Prototyp einer beweglichen Gliederpuppe im Browser." />
-  <title>Atelier 3D – Charakter & Pose</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta name="description" content="Privates 3D-Zeichenstudio mit positionierbaren Figuren im Browser." />
+  <title>Atelier 3D – 2.5D-Anime-Webdemo</title>
+  <link rel="stylesheet" href="./style.css?v=25901" />
   <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.0/lib/three-vrm.module.min.js"
     }
   }
   </script>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="workspace">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">✦</span><span>ATELIER <strong>3D</strong></span><span class="brand-tag">PROTOTYP 01</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">A</span> Atelier <strong>3D</strong></div>
+      <span id="saveStatus" class="save-status" role="status">Lokal gespeichert</span>
       <div class="top-actions">
-        <span id="saveStatus" class="save-status">Lokal gespeichert</span>
-        <button id="resetAll" class="btn btn-ghost" type="button">↺ Zurücksetzen</button>
-        <button id="screenshot" class="btn btn-primary" type="button">↓ PNG speichern</button>
+        <button id="toggleTools" class="btn btn-ghost" type="button" aria-controls="settingsPanel" aria-expanded="true" title="Einstellungsfenster ein- oder ausblenden">Panel ausblenden</button>
+        <button class="btn btn-ghost" type="button" data-open-tools="files" title="JSON-Import und -Export öffnen">Dateien</button>
+        <button id="resetAll" class="btn btn-ghost" type="button" title="Figur, Pose, Farben und Beleuchtung auf die Startwerte zurücksetzen">Zurücksetzen</button>
+        <button id="screenshot" class="btn btn-primary" type="button" title="Die aktuelle 3D-Ansicht als Bild herunterladen">↓ PNG exportieren</button>
       </div>
     </header>
 
-    <aside class="left-pane">
-      <div class="section-eyebrow">MEIN CHARAKTER</div>
-      <h1>Gestalte deine Figur<span>.</span></h1>
-      <p class="subtext">Eine einfache, bewegliche 3D-Gliederpuppe – direkt im Browser.</p>
+    <nav class="tool-rail" aria-label="Werkzeuge">
+      <button type="button" class="tool is-active" data-tab="figure" aria-controls="figurePanel" aria-pressed="true"><span class="tool-icon" aria-hidden="true">♙</span>Figur</button>
+      <button type="button" class="tool" data-tab="body" aria-controls="bodyPanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">↕</span>Körper</button>
+      <button type="button" class="tool" data-tab="face" aria-controls="facePanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">☺</span>Gesicht</button>
+      <button type="button" class="tool" data-tab="appearance" aria-controls="appearancePanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">◒</span>Farben</button>
+      <button type="button" class="tool" data-tab="pose" aria-controls="posePanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">◇</span>Pose</button>
+      <button type="button" class="tool" data-tab="clothes" aria-controls="clothesPanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">♧</span>Kleidung</button>
+      <button type="button" class="tool" data-tab="light" aria-controls="lightPanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">☼</span>Licht</button>
+      <button type="button" class="tool" data-tab="view" aria-controls="viewPanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">◉</span>Ansicht</button>
+      <button type="button" class="tool" data-tab="files" aria-controls="filesPanel" aria-pressed="false"><span class="tool-icon" aria-hidden="true">⇅</span>Dateien</button>
+    </nav>
 
-      <div class="tab-bar" role="tablist" aria-label="Einstellungen">
-        <button class="tab is-active" data-tab="body" role="tab" aria-selected="true" type="button">Körper</button>
-        <button class="tab" data-tab="pose" role="tab" aria-selected="false" type="button">Gelenke</button>
-      </div>
-
-      <div id="bodyPanel" class="tab-panel">
-        <div class="control-title">DARSTELLUNG</div>
-        <div class="segmented" role="group" aria-label="Figurenstil">
-          <button type="button" class="style-option is-active" data-style="anime">Anime</button>
-          <button type="button" class="style-option" data-style="natural">Neutral</button>
+    <aside class="settings-panel" id="settingsPanel" aria-label="Einstellungen">
+      <section id="figurePanel" class="tool-panel">
+        <h1>Figur</h1>
+        <div class="model-controls">
+          <label class="control-title" for="displayMode">Darstellungsart</label>
+          <select id="displayMode" aria-describedby="animeModeStatus">
+            <option value="3d">3D</option>
+            <option value="2.5d">2.5D-Anime</option>
+          </select>
         </div>
-        <div class="control-title with-gap">PROPORTIONEN</div>
+        <p id="animeModeStatus" class="helper-text" role="status" hidden></p>
+        <div id="animeFigureOptions" class="model-controls mode-options" hidden>
+          <label class="control-title" for="anime25dModel">Animefigur</label>
+          <select id="anime25dModel">
+            <optgroup label="2.5D-Anime">
+              <option value="studio-demo">Atelier-Demonstrationsfigur</option>
+            </optgroup>
+          </select>
+          <p class="helper-text">Vorderansicht. Verwende die Regler und Vorlagen unter Pose.</p>
+        </div>
+        <div id="figure3dOptions" class="mode-options">
+          <div class="model-controls">
+            <label class="control-title" for="characterModel">Modell</label>
+            <select id="characterModel" aria-describedby="importedModelHint modelStatus">
+              <option value="mannequin">Gliederpuppe</option>
+              <option value="imported" id="importedModelOption" hidden disabled></option>
+            </select>
+            <button id="importVrm" class="btn btn-secondary" type="button">Eigenes VRM-Modell importieren</button>
+            <input id="localVrm" type="file" accept=".vrm" hidden>
+            <p id="importedModelHint" class="helper-text" role="status" hidden></p>
+            <button id="removeVrm" class="btn btn-ghost" type="button" hidden>Eigenes Modell entfernen</button>
+          </div>
+          <div id="mannequinControls">
+            <h2>Darstellung</h2>
+            <div class="segmented" role="group" aria-label="Figurenstil">
+              <button type="button" class="style-option is-active" data-style="anime">Anime</button>
+              <button type="button" class="style-option" data-style="natural">Neutral</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="bodyPanel" class="tool-panel hidden">
+        <h1>Körper</h1>
+        <p id="importedBodyHint" class="helper-text" hidden>Bei eigenen Modellen kannst du die Gesamtgröße einstellen.</p>
         <div id="bodyControls" class="sliders"></div>
-        <div class="info-note"><span>ⓘ</span> Diese erste Figur besteht aus einfachen 3D-Formen. Ein detailliertes Charaktermodell mit Haaren und Gesichtseditor ergänzen wir später.</div>
-      </div>
-      <div id="posePanel" class="tab-panel hidden">
-        <div class="control-title">GELENKE BEWEGEN</div>
-        <div id="poseControls" class="sliders"></div>
-        <p class="helper-text">Bewege die Regler, um Arme, Ellenbogen und Beine zu positionieren. Kameradrehung funktioniert separat im 3D-Fenster.</p>
-      </div>
+        <details id="advancedBodyShape" class="accordion body-shape-panel" open hidden>
+          <summary>Erweiterte Körperform</summary>
+          <p id="bodyShapeStatus" class="helper-text" hidden></p>
+          <div id="bodyShapeFields" class="sliders"></div>
+          <button id="bodyShapeReset" class="btn btn-secondary" type="button" hidden>Körperform zurücksetzen</button>
+          <details id="bodyShapeInventory" class="body-shape-inventory" hidden>
+            <summary>Shape Keys im VRM-Export</summary>
+            <p class="helper-text">Die Kategorien folgen den Namen und VRM-Ausdrucksbindungen. Positionsänderungen sind in Mesh-Einheiten angegeben.</p>
+            <div id="bodyShapeReport"></div>
+            <button id="bodyShapeExport" class="btn btn-secondary" type="button">Shape-Key-Liste exportieren</button>
+          </details>
+        </details>
+      </section>
+
+      <section id="facePanel" class="tool-panel hidden">
+        <h1>Gesicht</h1>
+        <p id="faceUnavailable" class="helper-text">Gesichtsausdrücke sind bei den VRM-Figuren im Menü <strong>Figur</strong> verfügbar.</p>
+        <div class="stack">
+          <div id="faceControls" class="stack"></div>
+          <p id="faceOverride" class="helper-text" hidden></p>
+          <button type="button" id="resetFace" class="btn btn-secondary" hidden>Gesicht neutral stellen</button>
+          <details id="faceFine" class="accordion" hidden>
+            <summary>Mimik fein einstellen</summary>
+            <p class="helper-text">Mische mehrere Ausdrücke oder bewege einzelne Gesichtspartien. Links und rechts gelten aus der Vorderansicht.</p>
+            <div id="faceFineControls" class="sliders"></div>
+          </details>
+          <button type="button" class="btn btn-secondary" data-open-tools="appearance">Farben und Make-up öffnen</button>
+        </div>
+      </section>
+
+      <section id="appearancePanel" class="tool-panel hidden">
+        <h1>Farben</h1>
+        <div class="stack">
+          <details class="accordion" open hidden>
+            <summary>Haut, Haare und Augen</summary>
+            <div id="appearanceFigure" class="sliders appearance-rows"></div>
+          </details>
+          <details class="accordion" open hidden>
+            <summary>Kleidungsfarben</summary>
+            <div id="appearanceClothes" class="sliders appearance-rows"></div>
+          </details>
+          <details class="accordion" open hidden>
+            <summary>Make-up</summary>
+            <div id="appearanceMakeup" class="sliders appearance-rows"></div>
+          </details>
+          <p id="appearanceEmpty" class="helper-text" hidden>Bei diesem Modell wurden keine passenden Materialien für die Farbpalette erkannt.</p>
+          <button type="button" class="btn btn-secondary" id="appearanceReset" hidden>Alle Farben zurücksetzen</button>
+        </div>
+      </section>
+
+      <section id="posePanel" class="tool-panel hidden">
+        <h1>Pose</h1>
+        <h2>Beispielposen</h2>
+        <div class="pose-presets">
+          <button type="button" class="preset is-active" data-preset="neutral">Grundpose</button>
+          <button type="button" class="preset" data-preset="tpose">T-Pose</button>
+          <button type="button" class="preset" data-preset="wave">Winken</button>
+          <button type="button" class="preset" data-preset="step">Schritt</button>
+        </div>
+        <details id="poseLibrary" class="accordion pose-library">
+          <summary>Posenbibliothek und Bewegung</summary>
+          <div class="sliders">
+            <div class="model-controls">
+              <label class="control-title" for="libraryCategory">Posenkategorie</label>
+              <select id="libraryCategory" disabled></select>
+              <label class="control-title" for="libraryPose">Pose</label>
+              <select id="libraryPose" disabled></select>
+              <button type="button" id="libraryApplyPose" class="btn btn-secondary" disabled>Pose anwenden</button>
+            </div>
+            <div class="model-controls">
+              <label class="control-title" for="libraryMotion">Bewegung</label>
+              <select id="libraryMotion" disabled></select>
+              <label class="control-title" for="librarySpeed">Tempo</label>
+              <select id="librarySpeed" disabled>
+                <option value="1">Normal</option>
+                <option value="0.5">Zeitlupe ½</option>
+                <option value="0.25">Zeitlupe ¼</option>
+              </select>
+              <label class="slider-label" for="libraryTime">
+                <span>Zeit</span><output id="libraryTimeLabel">0,00 s</output>
+              </label>
+              <input id="libraryTime" class="slider" type="range" min="0" max="0" step="any" disabled>
+              <div class="pose-library-actions">
+                <button type="button" id="libraryPlay" class="btn btn-secondary" disabled>Abspielen</button>
+                <button type="button" id="libraryCapture" class="btn btn-secondary" disabled>Moment als Pose übernehmen</button>
+                <button type="button" id="libraryClose" class="btn btn-ghost" disabled>Vorschau beenden</button>
+              </div>
+            </div>
+            <p id="libraryStatus" class="helper-text" role="status"></p>
+          </div>
+        </details>
+        <div class="model-controls pose-mode" data-only-3d>
+          <label class="control-title" for="limbDragMode">Mausbewegung</label>
+          <select id="limbDragMode" aria-describedby="limbDragHelp">
+            <option value="standard">Standardbewegung</option>
+            <option value="alternate">Zweite Bewegungsrichtung</option>
+            <option value="twist">Um die Längsachse drehen</option>
+          </select>
+          <p id="limbDragHelp" class="helper-text">Halte beim rechten Ziehen Umschalt für die zweite Bewegung oder Strg zum Drehen.</p>
+        </div>
+        <h2>Gelenke</h2>
+        <div id="poseControls" class="accordions">
+          <details class="accordion" open>
+            <summary>Kopf &amp; Hals</summary>
+            <div id="headPoseControls" class="sliders"></div>
+          </details>
+          <details class="accordion">
+            <summary>Oberkörper</summary>
+            <div id="torsoPoseControls" class="sliders"></div>
+          </details>
+          <details class="accordion">
+            <summary>Arme</summary>
+            <div id="extraLimbControls" class="sliders"></div>
+          </details>
+          <details class="accordion">
+            <summary>Beine</summary>
+            <div id="legPoseControls" class="sliders"></div>
+            <p class="helper-text" data-only-3d>Bei gebeugtem Knie lässt sich die Hüfte weiter beugen und der Unterschenkel drehen. Für die Kniedrehung mit Strg waagerecht am Unterschenkel ziehen.</p>
+          </details>
+          <details class="accordion">
+            <summary>Hände<span data-only-3d> &amp; Finger</span></summary>
+            <details class="hand-group">
+              <summary>Linke Hand</summary>
+              <div id="leftHandControls" class="sliders"></div>
+            </details>
+            <details class="hand-group">
+              <summary>Rechte Hand</summary>
+              <div id="rightHandControls" class="sliders"></div>
+            </details>
+          </details>
+        </div>
+      </section>
+
+      <section id="clothesPanel" class="tool-panel hidden">
+        <h1>Kleiderschrank</h1>
+        <div class="accordions">
+          <details class="accordion" open>
+            <summary>Kleidung</summary>
+            <div id="wardrobeClothes" class="wardrobe-groups"></div>
+            <p id="wardrobeUnavailable" class="helper-text">Für diese Figur ist keine passende Wechselkleidung verfügbar.</p>
+            <div id="localClothesPanel" class="wardrobe-groups wardrobe-import" hidden>
+              <div class="model-controls">
+                <label class="control-title" for="localClothesSlot">Kategorie</label>
+                <select id="localClothesSlot"></select>
+              </div>
+              <button id="importLocalClothes" type="button" class="btn btn-secondary">Kleidungsstück importieren</button>
+              <input id="localClothesFiles" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.avif,.gif,.bmp" multiple hidden />
+              <p class="helper-text">GLB oder glTF mit SiroinoSotai-Skelett und Gelenkgewichten.</p>
+              <button id="importLocalClothesCompanions" type="button" class="btn btn-secondary" hidden>Begleitdateien auswählen</button>
+              <p id="localClothesStatus" class="helper-text" role="status" hidden></p>
+              <div id="localClothesList" class="wardrobe-import"></div>
+            </div>
+          </details>
+          <details id="wardrobeHair" class="accordion" hidden>
+            <summary>Haare</summary>
+            <div class="wardrobe-groups wardrobe-hair-controls">
+              <h2 class="wardrobe-heading">Haarfarben</h2>
+              <div id="hairSwatches" class="wardrobe-tiles"></div>
+              <div class="light-color">
+                <label for="wardrobeHairColor">Eigene Haarfarbe</label>
+                <input id="wardrobeHairColor" type="color" value="#543629" />
+              </div>
+              <button id="wardrobeHairReset" type="button" class="btn btn-secondary">Originalhaarfarbe wiederherstellen</button>
+            </div>
+          </details>
+          <details class="accordion" open>
+            <summary>Accessoires</summary>
+            <div class="wardrobe-groups wardrobe-import">
+              <button id="importWardrobeAsset" type="button" class="btn btn-secondary">Eigenen Gegenstand importieren</button>
+              <p class="helper-text">Starre Accessoires als GLB oder glTF.</p>
+              <input id="wardrobeAssetFiles" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.avif,.gif,.bmp" multiple hidden />
+              <button id="importWardrobeCompanions" type="button" class="btn btn-secondary" hidden>Begleitdateien auswählen</button>
+              <p id="wardrobeImportStatus" class="helper-text" role="status" hidden></p>
+            </div>
+            <div id="wardrobeAccessories" class="wardrobe-groups"></div>
+            <p id="accessoriesUnavailable" class="helper-text" hidden>Für diese Figur sind noch keine Accessoires aus der Grundausstattung angepasst.</p>
+            <p id="localAssetsMissing" class="helper-text" hidden>Für gespeicherte lokale Gegenstände fehlen Dateien. Wähle den Gegenstand und öffne seine Datei erneut.</p>
+            <div id="accessoryEditor" class="wardrobe-editor" hidden>
+              <h2 id="accessoryName" class="wardrobe-heading"></h2>
+              <p id="accessoryAnchor"></p>
+              <div id="accessoryLocal" class="model-controls" hidden>
+                <label class="control-title" for="accessoryMount">Befestigungspunkt</label>
+                <select id="accessoryMount"></select>
+                <button id="reopenWardrobeAsset" type="button" class="btn btn-secondary" hidden>Datei erneut auswählen</button>
+              </div>
+              <label class="check-label"><input id="accessoryVisible" type="checkbox"> Sichtbar</label>
+              <div id="accessorySliders" class="sliders"></div>
+              <div class="wardrobe-actions">
+                <button id="accessoryReset" type="button" class="btn btn-secondary">Anpassung zurücksetzen</button>
+                <button id="accessoryRemove" type="button" class="btn btn-secondary">Entfernen</button>
+              </div>
+            </div>
+            <div id="wardrobeJewelry" class="wardrobe-groups"></div>
+          </details>
+        </div>
+        <div class="cloth-controls">
+          <label class="check-label"><input id="clothGravity" type="checkbox" checked aria-describedby="clothesAvailability"> Schwerkraft für Kleidung und Haare</label>
+          <button class="btn btn-secondary" id="clothPause" type="button" title="Kleidung und Haare für die Zeichenvorlage festhalten">Bewegung einfrieren</button>
+        </div>
+        <p id="clothesAvailability" class="helper-text"></p>
+        <button type="button" class="btn btn-secondary wardrobe-palette-link" id="wardrobePaletteLink" hidden data-open-tools="appearance">Kleidungsfarben öffnen</button>
+      </section>
+
+      <section id="lightPanel" class="tool-panel hidden">
+        <h1>Licht</h1>
+        <div class="light-options">
+          <label class="check-label"><input id="lightEnabled" type="checkbox"> Scheinwerfer einschalten</label>
+          <label class="light-color" for="lightColor">Lichtfarbe <input id="lightColor" type="color" value="#ffffff"></label>
+        </div>
+        <div id="lightControls" class="sliders"></div>
+        <p class="helper-text">Ziehe mit der linken Maustaste an den farbigen Achsen, um den Scheinwerfer zu verschieben. Er bleibt auf die Figur gerichtet. Weniger Grundlicht macht die Schatten deutlicher.</p>
+      </section>
+
+      <section id="viewPanel" class="tool-panel hidden">
+        <h1>Ansicht</h1>
+        <div class="stack" data-only-3d>
+          <button type="button" id="cameraReset" class="btn btn-secondary">Kamera zurücksetzen</button>
+          <label class="check-label"><input id="showGrid" type="checkbox" checked> Bodenraster</label>
+          <label class="check-label"><input id="showJoints" type="checkbox" checked aria-describedby="jointAvailability"> Gelenkmarkierungen</label>
+          <p id="jointAvailability" class="helper-text hidden">Gelenkmarkierungen sind bei der Gliederpuppe verfügbar.</p>
+        </div>
+        <div class="stack" id="animeViewControls" hidden>
+          <p class="helper-text">Vorderansicht</p>
+          <label class="check-label"><input id="animeShowRig" type="checkbox"> 2D-Gelenke anzeigen</label>
+        </div>
+      </section>
+
+      <section id="filesPanel" class="tool-panel hidden">
+        <h1>Dateien</h1>
+        <div class="stack">
+          <button type="button" id="saveConfig" class="btn btn-secondary">Einstellungen exportieren</button>
+          <button type="button" id="importConfig" class="btn btn-secondary">Einstellungen importieren</button>
+          <input type="file" id="loadConfig" accept=".json,application/json" hidden>
+        </div>
+        <p class="helper-text">Die Einstellungen werden automatisch in diesem Browser gespeichert. Mit einer JSON-Datei kannst du sie sichern oder übertragen.</p>
+      </section>
     </aside>
 
-    <main class="viewport-pane">
-      <div class="viewport-top">
-        <div class="view-label"><span class="online-dot"></span> LIVE 3D <span class="view-sep">/</span> GLIEDERPUPPE</div>
-        <div class="view-switches"><label class="check-label"><input id="showGrid" type="checkbox" checked /> Bodenraster</label><label class="check-label"><input id="showJoints" type="checkbox" checked /> Gelenke</label></div>
+    <main class="viewport-pane" aria-label="Zeichen-Arbeitsbereich">
+      <div class="viewport-bar">
+        <div class="view-info">
+          <span class="view-label"><span class="online-dot" aria-hidden="true"></span><span id="modelLabel">Gliederpuppe</span></span>
+          <p id="modelStatus" role="status"></p>
+          <p id="animePoseWarning" role="status" hidden></p>
+        </div>
+        <button class="btn viewport-button" data-open-tools="view" type="button">Ansicht</button>
       </div>
       <div id="stage" class="stage" aria-label="Interaktive 3D-Ansicht"></div>
-      <div class="stage-bottom">
-        <span>↔ <strong>Ziehen</strong> Drehen</span>
-        <span>⌁ <strong>Mausrad</strong> Zoomen</span>
-        <span>⇧ <strong>Rechtsklick</strong> Verschieben</span>
-      </div>
+      <details class="viewport-help" data-only-3d>
+        <summary>Maussteuerung</summary>
+        <dl>
+          <dt>Links ziehen</dt><dd>Kamera drehen</dd>
+          <dt>Mausrad</dt><dd>Zoomen</dd>
+          <dt>Rechts auf der Figur ziehen</dt><dd>Gelenk bewegen</dd>
+          <dt>Rechts im Hintergrund ziehen</dt><dd>Ansicht verschieben</dd>
+          <dt>Umschalt + rechts ziehen</dt><dd>Zweite Gelenkbewegung</dd>
+          <dt>Strg + rechts ziehen</dt><dd>Glied um die Längsachse drehen</dd>
+        </dl>
+      </details>
     </main>
-
-    <aside class="right-pane">
-      <div class="section-eyebrow">POSENSTUDIO</div>
-      <h2>Deine nächste Pose</h2>
-      <p class="subtext">Starte mit einer Vorlage und passe die Gelenke links weiter an.</p>
-      <div class="pose-presets">
-        <button type="button" class="preset is-active" data-preset="neutral"><span class="preset-icon">│</span><span><strong>Grundpose</strong><small>Entspannt stehen</small></span></button>
-        <button type="button" class="preset" data-preset="tpose"><span class="preset-icon">┼</span><span><strong>T-Pose</strong><small>Arme ausstrecken</small></span></button>
-        <button type="button" class="preset" data-preset="wave"><span class="preset-icon">╱</span><span><strong>Winken</strong><small>Einen Arm anheben</small></span></button>
-        <button type="button" class="preset" data-preset="step"><span class="preset-icon">⌁</span><span><strong>Schritt</strong><small>Beine bewegen</small></span></button>
-      </div>
-      <div class="divider"></div>
-      <div class="control-title">DEINE EINSTELLUNGEN</div>
-      <div class="right-actions">
-        <button type="button" id="saveConfig" class="btn btn-secondary">↓ Einstellungen exportieren</button>
-        <label class="btn btn-secondary file-button" for="loadConfig">↑ Einstellungen importieren</label>
-        <input type="file" id="loadConfig" accept=".json,application/json" hidden />
-        <button type="button" id="cameraReset" class="btn btn-ghost">◎ Kamera zurücksetzen</button>
-      </div>
-      <div class="bottom-help">Alles läuft lokal in deinem Browser. Deine Regler-Einstellungen werden auf diesem Gerät automatisch gespeichert. Für die 3D-Bibliothek ist Internet nötig.</div>
-    </aside>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=25901"></script>
 </body>
 </html>
